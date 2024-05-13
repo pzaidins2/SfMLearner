@@ -6,7 +6,7 @@ import numpy as np
 from SfMLearner import SfMLearner
 import os
 
-flags = tf.app.flags
+flags = tf.compat.v1.app.flags
 flags.DEFINE_string("dataset_dir", "", "Dataset directory")
 flags.DEFINE_string("checkpoint_dir", "./checkpoints/", "Directory name to save the checkpoints")
 flags.DEFINE_string("init_checkpoint_file", None, "Specific checkpoint file to initialize from")
@@ -17,6 +17,8 @@ flags.DEFINE_float("explain_reg_weight", 0.0, "Weight for explanability regulari
 flags.DEFINE_integer("batch_size", 4, "The size of of a sample batch")
 flags.DEFINE_integer("img_height", 128, "Image height")
 flags.DEFINE_integer("img_width", 416, "Image width")
+flags.DEFINE_integer("num_source", None, "number of source images")
+flags.DEFINE_integer("num_scales", None, "number of used image scales")
 flags.DEFINE_integer("seq_length", 3, "Sequence length for each example")
 flags.DEFINE_integer("max_steps", 200000, "Maximum number of training iterations")
 flags.DEFINE_integer("summary_freq", 100, "Logging every log_freq iterations")
@@ -26,8 +28,10 @@ flags.DEFINE_boolean("continue_train", False, "Continue training from previous c
 FLAGS = flags.FLAGS
 
 def main(_):
+    tf.compat.v1.disable_eager_execution()
+
     seed = 8964
-    tf.set_random_seed(seed)
+    tf.compat.v1.set_random_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
 
@@ -41,4 +45,4 @@ def main(_):
     sfm.train(FLAGS)
 
 if __name__ == '__main__':
-    tf.app.run()
+    tf.compat.v1.app.run()

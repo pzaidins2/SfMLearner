@@ -4,7 +4,7 @@ import time
 import math
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+import tf_slim as slim
 from data_loader import DataLoader
 from nets import *
 from utils import *
@@ -54,9 +54,9 @@ class SfMLearner(object):
                     ref_exp_mask = self.get_reference_explain_mask(s)
                 # Scale the source and target images for computing loss at the 
                 # according scale.
-                curr_tgt_image = tf.image.resize_area(tgt_image, 
+                curr_tgt_image = tf.compat.v1.image.resize_area(tgt_image, 
                     [int(opt.img_height/(2**s)), int(opt.img_width/(2**s))])                
-                curr_src_image_stack = tf.image.resize_area(src_image_stack, 
+                curr_src_image_stack = tf.compat.v1.image.resize_area(src_image_stack, 
                     [int(opt.img_height/(2**s)), int(opt.img_width/(2**s))])
 
                 if opt.smooth_weight > 0:
@@ -110,8 +110,8 @@ class SfMLearner(object):
             total_loss = pixel_loss + smooth_loss + exp_loss
 
         with tf.name_scope("train_op"):
-            train_vars = [var for var in tf.trainable_variables()]
-            optim = tf.train.AdamOptimizer(opt.learning_rate, opt.beta1)
+            train_vars = [var for var in tf.compat.v1.trainable_variables()]
+            optim = tf.compat.v1.train.AdamOptimizer(opt.learning_rate, opt.beta1)
             # self.grads_and_vars = optim.compute_gradients(total_loss, 
             #                                               var_list=train_vars)
             # self.train_op = optim.apply_gradients(self.grads_and_vars)
@@ -119,7 +119,7 @@ class SfMLearner(object):
             self.global_step = tf.Variable(0, 
                                            name='global_step', 
                                            trainable=False)
-            self.incr_global_step = tf.assign(self.global_step, 
+            self.incr_global_step = tf.compat.v1.assign(self.global_step, 
                                               self.global_step+1)
 
         # Collect tensors that are useful later (e.g. tf summary)
@@ -209,18 +209,18 @@ class SfMLearner(object):
         self.collect_summaries()
         with tf.name_scope("parameter_count"):
             parameter_count = tf.reduce_sum([tf.reduce_prod(tf.shape(v)) \
-                                            for v in tf.trainable_variables()])
-        self.saver = tf.train.Saver([var for var in tf.model_variables()] + \
+                                            for v in tf.compat.v1.trainable_variables()])
+        self.saver = tf.compat.v1.train.Saver([var for var in tf.compat.v1.model_variables()] + \
                                     [self.global_step],
                                      max_to_keep=10)
-        sv = tf.train.Supervisor(logdir=opt.checkpoint_dir, 
+        sv = tf.compat.v1.train.Supervisor(logdir=opt.checkpoint_dir, 
                                  save_summaries_secs=0, 
                                  saver=None)
-        config = tf.ConfigProto()
+        config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
         with sv.managed_session(config=config) as sess:
             print('Trainable variables: ')
-            for var in tf.trainable_variables():
+            for var in tf.compat.v1.trainable_variables():
                 print(var.name)
             print("parameter_count =", sess.run(parameter_count))
             if opt.continue_train:

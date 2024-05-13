@@ -24,11 +24,11 @@ class DataLoader(object):
         seed = random.randint(0, 2**31 - 1)
         # Load the list of training files into queues
         file_list = self.format_file_list(self.dataset_dir, 'train')
-        image_paths_queue = tf.train.string_input_producer(
+        image_paths_queue = tf.compat.v1.train.string_input_producer(
             file_list['image_file_list'], 
             seed=seed, 
             shuffle=True)
-        cam_paths_queue = tf.train.string_input_producer(
+        cam_paths_queue = tf.compat.v1.train.string_input_producer(
             file_list['cam_file_list'], 
             seed=seed, 
             shuffle=True)
@@ -36,7 +36,7 @@ class DataLoader(object):
             len(file_list['image_file_list'])//self.batch_size)
 
         # Load images
-        img_reader = tf.WholeFileReader()
+        img_reader = tf.compat.v1.WholeFileReader()
         _, image_contents = img_reader.read(image_paths_queue)
         image_seq = tf.image.decode_jpeg(image_contents)
         tgt_image, src_image_stack = \
@@ -44,19 +44,19 @@ class DataLoader(object):
                 image_seq, self.img_height, self.img_width, self.num_source)
 
         # Load camera intrinsics
-        cam_reader = tf.TextLineReader()
+        cam_reader = tf.compat.v1.TextLineReader()
         _, raw_cam_contents = cam_reader.read(cam_paths_queue)
         rec_def = []
         for i in range(9):
             rec_def.append([1.])
-        raw_cam_vec = tf.decode_csv(raw_cam_contents, 
+        raw_cam_vec = tf.compat.v1.decode_csv(raw_cam_contents, 
                                     record_defaults=rec_def)
         raw_cam_vec = tf.stack(raw_cam_vec)
         intrinsics = tf.reshape(raw_cam_vec, [3, 3])
 
         # Form training batches
         src_image_stack, tgt_image, intrinsics = \
-                tf.train.batch([src_image_stack, tgt_image, intrinsics], 
+                tf.compat.v1.train.batch([src_image_stack, tgt_image, intrinsics], 
                                batch_size=self.batch_size)
 
         # Data augmentation
@@ -84,12 +84,12 @@ class DataLoader(object):
         # Random scaling
         def random_scaling(im, intrinsics):
             batch_size, in_h, in_w, _ = im.get_shape().as_list()
-            scaling = tf.random_uniform([2], 1, 1.15)
+            scaling = tf.compat.v1.random_uniform([2], 1, 1.15)
             x_scaling = scaling[0]
             y_scaling = scaling[1]
             out_h = tf.cast(in_h * y_scaling, dtype=tf.int32)
             out_w = tf.cast(in_w * x_scaling, dtype=tf.int32)
-            im = tf.image.resize_area(im, [out_h, out_w])
+            im = tf.compat.v1.image.resize_area(im, [out_h, out_w])
             fx = intrinsics[:,0,0] * x_scaling
             fy = intrinsics[:,1,1] * y_scaling
             cx = intrinsics[:,0,2] * x_scaling
@@ -101,8 +101,8 @@ class DataLoader(object):
         def random_cropping(im, intrinsics, out_h, out_w):
             # batch_size, in_h, in_w, _ = im.get_shape().as_list()
             batch_size, in_h, in_w, _ = tf.unstack(tf.shape(im))
-            offset_y = tf.random_uniform([1], 0, in_h - out_h + 1, dtype=tf.int32)[0]
-            offset_x = tf.random_uniform([1], 0, in_w - out_w + 1, dtype=tf.int32)[0]
+            offset_y = tf.compat.v1.random_uniform([1], 0, in_h - out_h + 1, dtype=tf.int32)[0]
+            offset_x = tf.compat.v1.random_uniform([1], 0, in_w - out_w + 1, dtype=tf.int32)[0]
             im = tf.image.crop_to_bounding_box(
                 im, offset_y, offset_x, out_h, out_w)
             fx = intrinsics[:,0,0]
