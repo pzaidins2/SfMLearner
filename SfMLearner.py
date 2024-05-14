@@ -8,6 +8,8 @@ import tf_slim as slim
 from data_loader import DataLoader
 from nets import *
 from utils import *
+import sys
+
 
 class SfMLearner(object):
     def __init__(self):
@@ -42,6 +44,7 @@ class SfMLearner(object):
             pixel_loss = 0
             exp_loss = 0
             smooth_loss = 0
+            ssim_loss = 0
             tgt_image_all = []
             src_image_stack_all = []
             proj_image_stack_all = []
@@ -71,6 +74,7 @@ class SfMLearner(object):
                         pred_poses[:,i,:], 
                         intrinsics[:,s,:,:])
                     curr_proj_error = tf.abs(curr_proj_image - curr_tgt_image)
+
                     # Cross-entropy loss as regularization for the 
                     # explainability prediction
                     if opt.explain_reg_weight > 0:
@@ -86,7 +90,14 @@ class SfMLearner(object):
                         pixel_loss += tf.reduce_mean(curr_proj_error * \
                             tf.expand_dims(curr_exp[:,:,:,1], -1))
                     else:
-                        pixel_loss += tf.reduce_mean(curr_proj_error) 
+                        pixel_loss += tf.reduce_mean(curr_proj_error)
+                    # add image similarity loss
+                    if opt.SSIM_on:
+                        # 40 chosen to be meaningful but not dominate other losses
+                        # negative as 1 is good and -1 is bad
+                        gray_curr_proj_image = tf.image.rgb_to_grayscale(curr_proj_image)
+                        gray_curr_tgt_image = tf.image.rgb_to_grayscale( curr_tgt_image )
+                        ssim_loss -= tf.reduce_mean( tf.image.ssim(gray_curr_proj_image,gray_curr_tgt_image ,255.0) ) / 40.0
                     # Prepare images for tensorboard summaries
                     if i == 0:
                         proj_image_stack = curr_proj_image
@@ -107,7 +118,7 @@ class SfMLearner(object):
                 proj_error_stack_all.append(proj_error_stack)
                 if opt.explain_reg_weight > 0:
                     exp_mask_stack_all.append(exp_mask_stack)
-            total_loss = pixel_loss + smooth_loss + exp_loss
+            total_loss = pixel_loss + smooth_loss + exp_loss + ssim_loss
 
         with tf.name_scope("train_op"):
             train_vars = [var for var in tf.compat.v1.trainable_variables()]
@@ -130,6 +141,7 @@ class SfMLearner(object):
         self.pixel_loss = pixel_loss
         self.exp_loss = exp_loss
         self.smooth_loss = smooth_loss
+        self.ssim_loss = ssim_loss
         self.tgt_image_all = tgt_image_all
         self.src_image_stack_all = src_image_stack_all
         self.proj_image_stack_all = proj_image_stack_all
