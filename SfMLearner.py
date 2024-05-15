@@ -287,7 +287,7 @@ class SfMLearner(object):
         self.depth_epts = depth_net_endpoints
 
     def build_pose_test_graph(self):
-        input_uint8 = tf.placeholder(tf.uint8, [self.batch_size, 
+        input_uint8 = tf.compat.v1.placeholder(tf.uint8, [self.batch_size,
             self.img_height, self.img_width * self.seq_length, 3], 
             name='raw_input')
         input_mc = self.preprocess_image(input_uint8)
