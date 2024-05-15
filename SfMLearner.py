@@ -274,7 +274,7 @@ class SfMLearner(object):
                     self.save(sess, opt.checkpoint_dir, gs)
 
     def build_depth_test_graph(self):
-        input_uint8 = tf.placeholder(tf.uint8, [self.batch_size, 
+        input_uint8 = tf.compat.v1.placeholder(tf.uint8, [self.batch_size,
                     self.img_height, self.img_width, 3], name='raw_input')
         input_mc = self.preprocess_image(input_uint8)
         with tf.name_scope("depth_prediction"):

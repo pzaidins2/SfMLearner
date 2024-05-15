@@ -10,6 +10,7 @@ parser.add_argument("--gtruth_dir", type=str,
     help='Path to the directory with ground-truth trajectories')
 parser.add_argument("--pred_dir", type=str, 
     help="Path to the directory with predicted trajectories")
+
 args = parser.parse_args()
 
 def main():
