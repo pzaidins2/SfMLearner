@@ -7,7 +7,7 @@ import tensorflow as tf
 import tf_slim as slim
 from data_loader import DataLoader
 # from nets import *
-from nets_alt import *
+from SfMLearner.nets_alt import *
 from utils import *
 
 class SfMLearner(object):
@@ -28,7 +28,7 @@ class SfMLearner(object):
             src_image_stack = self.preprocess_image(src_image_stack)
 
         with tf.name_scope("depth_prediction"):
-            pred_disp, depth_net_endpoints = disp_net(tgt_image, opt.netArch,
+            pred_disp, depth_net_endpoints = disp_net(tgt_image, opt.net_arch,
                                                       is_training=True) #modified disp_net to include network architecture flag
             pred_depth = [1./d for d in pred_disp]
 
@@ -219,6 +219,9 @@ class SfMLearner(object):
                                  saver=None)
         config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
+
+        losses = []
+
         with sv.managed_session(config=config) as sess:
             print('Trainable variables: ')
             for var in tf.compat.v1.trainable_variables():
@@ -239,12 +242,17 @@ class SfMLearner(object):
                     "incr_global_step": self.incr_global_step
                 }
 
+                fetches["loss"] = self.total_loss
                 if step % opt.summary_freq == 0:
-                    fetches["loss"] = self.total_loss
                     fetches["summary"] = sv.summary_op
 
                 results = sess.run(fetches)
                 gs = results["global_step"]
+
+                if opt.create_csv:
+                    losses.append(results["loss"])
+                    with open('Loss.csv', 'a') as fd:
+                        fd.write(str(results["loss"])+'\n')
 
                 if step % opt.summary_freq == 0:
                     sv.summary_writer.add_summary(results["summary"], gs)
@@ -263,12 +271,14 @@ class SfMLearner(object):
                     self.save(sess, opt.checkpoint_dir, gs)
 
     def build_depth_test_graph(self):
+        opt = self.opt
+
         input_uint8 = tf.placeholder(tf.uint8, [self.batch_size, 
                     self.img_height, self.img_width, 3], name='raw_input')
         input_mc = self.preprocess_image(input_uint8)
         with tf.name_scope("depth_prediction"):
             pred_disp, depth_net_endpoints = disp_net(
-                input_mc, opt.netArch,is_training=False)
+                input_mc, opt.net_arch,is_training=False)
             pred_depth = [1./disp for disp in pred_disp]
         pred_depth = pred_depth[0]
         self.inputs = input_uint8
