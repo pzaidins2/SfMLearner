@@ -312,7 +312,22 @@ class SfMLearner(object):
     def preprocess_image(self, image):
         # Assuming input image is uint8
         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-        return image * 2. -1.
+        image = image*2. - 1.
+        if len(image.shape) == 4:
+            image_list = []
+            for i in range(image.shape[0]):
+                curr_image = []
+                for j in range(image.shape[3]//3):
+                    curr_image.append(tf.image.random_hue(image[i,:,:,3*j:3*(j+1)], 0.2))
+                    curr_image[j] = tf.image.random_saturation(curr_image[j], 5, 10)
+                image_list.append(tf.concat(curr_image, axis=2))
+            image = tf.stack(image_list)
+        else:
+            for j in range(image.shape[2]//3):
+                curr_image.append(tf.image.random_hue(image[:,:,3*j:3*(j+1)], 0.2))
+                curr_image[j] = tf.image.random_saturation(curr_image[j], 5, 10)
+            image = tf.concat(curr_image, axis=2)
+        return image
 
     def deprocess_image(self, image):
         # Assuming input image is float32
